@@ -116,6 +116,7 @@ impl Miner {
                             // Exit if time has elapsed
                             if nonce % 100 == 0 {
                                 let global_best_difficulty = *global_best_difficulty.read().unwrap();
+                                let mut flag = false;
                                 if timer.elapsed().as_secs().ge(&cutoff_time) {
                                     if i == 0 {
                                         progress_bar.set_message(format!(
@@ -125,14 +126,16 @@ impl Miner {
                                         ));
                                     }
                                     if best_difficulty.ge(&min_difficulty) {
+                                        flag = true;
                                         // Mine until min difficulty has been met
                                         break;
                                     }
                                     progress_bar.set_message(format!(
-                                        "Mining... ({} / {} difficulty, {} sec remaining)",
+                                        "Mining... ({} / {} difficulty, {} sec remaining, {})",
                                         global_best_difficulty,
                                         min_difficulty,
                                         cutoff_time.saturating_sub(timer.elapsed().as_secs()),
+                                        flag
                                     ));
                                 } else if i == 0 {
                                     progress_bar.set_message(format!(
