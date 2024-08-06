@@ -1,5 +1,5 @@
 use std::{sync::Arc, time::Instant};
-
+use std::sync::RwLock;
 use colored::*;
 use drillx::{
     equix::{self},
@@ -49,7 +49,7 @@ impl Miner {
                 proof,
                 cutoff_time,
                 args.threads,
-                config.min_difficulty as u32,
+                15,
             )
             .await;
 
@@ -81,6 +81,7 @@ impl Miner {
         // Dispatch job to each thread
         let progress_bar = Arc::new(spinner::new_progress_bar());
         progress_bar.set_message("Mining...");
+        let global_best_difficulty = Arc::new(RwLock::new(0u32));
         let handles: Vec<_> = (0..threads)
             .map(|i| {
                 std::thread::spawn({
@@ -105,19 +106,32 @@ impl Miner {
                                     best_nonce = nonce;
                                     best_difficulty = difficulty;
                                     best_hash = hx;
+                                    if best_difficulty.gt(&*global_best_difficulty.read().unwrap()) {
+                                        *global_best_difficulty.write().unwrap() = best_difficulty;
+                                    }
                                 }
                             }
 
                             // Exit if time has elapsed
                             if nonce % 100 == 0 {
+                                let global_best_difficulty = *global_best_difficulty.read().unwrap();
                                 if timer.elapsed().as_secs().ge(&cutoff_time) {
+                                    if (i == 0) {
+                                        progress_bar.set_message(format!(
+                                            "Mining... ({} / {} difficulty)",
+                                            global_best_difficulty,
+                                            min_difficulty,
+                                        ));
+                                    }
                                     if best_difficulty.ge(&min_difficulty) {
                                         // Mine until min difficulty has been met
                                         break;
                                     }
                                 } else if i == 0 {
                                     progress_bar.set_message(format!(
-                                        "Mining... ({} sec remaining)",
+                                        "Mining... ({} / {} difficulty, {} sec remaining)",
+                                        global_best_difficulty,
+                                        min_difficulty,
                                         cutoff_time.saturating_sub(timer.elapsed().as_secs()),
                                     ));
                                 }
