@@ -84,6 +84,7 @@ impl Miner {
         let global_best_difficulty = Arc::new(RwLock::new(0u32));
         let handles: Vec<_> = (0..threads)
             .map(|i| {
+                let global_best_difficulty = Arc::clone(&global_best_difficulty);
                 std::thread::spawn({
                     let proof = proof.clone();
                     let progress_bar = progress_bar.clone();
