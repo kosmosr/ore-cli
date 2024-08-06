@@ -49,7 +49,7 @@ impl Miner {
                 proof,
                 cutoff_time,
                 args.threads,
-                15,
+                15u32,
             )
             .await;
 
@@ -117,7 +117,7 @@ impl Miner {
                             if nonce % 100 == 0 {
                                 let global_best_difficulty = *global_best_difficulty.read().unwrap();
                                 if timer.elapsed().as_secs().ge(&cutoff_time) {
-                                    if (i == 0) {
+                                    if i == 0 {
                                         progress_bar.set_message(format!(
                                             "Mining... ({} / {} difficulty)",
                                             global_best_difficulty,
@@ -128,6 +128,12 @@ impl Miner {
                                         // Mine until min difficulty has been met
                                         break;
                                     }
+                                    progress_bar.set_message(format!(
+                                        "Mining... ({} / {} difficulty, {} sec remaining)",
+                                        global_best_difficulty,
+                                        min_difficulty,
+                                        cutoff_time.saturating_sub(timer.elapsed().as_secs()),
+                                    ));
                                 } else if i == 0 {
                                     progress_bar.set_message(format!(
                                         "Mining... ({} / {} difficulty, {} sec remaining)",
